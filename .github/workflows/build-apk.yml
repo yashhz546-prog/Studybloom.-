@@ -15,8 +15,6 @@ jobs:
         with:
           channel: stable
 
-      # Fills in the native android/ios folders if they're missing,
-      # without touching the existing pubspec.yaml or lib/ code.
       - name: Ensure platform folders exist
         run: flutter create --org com.example --project-name studybloom .
 
@@ -24,6 +22,35 @@ jobs:
         run: |
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 26/' android/app/build.gradle || true
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 26/' android/app/build.gradle.kts || true
+
+      - name: Enable core library desugaring
+        run: |
+          if [ -f android/app/build.gradle.kts ]; then
+            cat >> android/app/build.gradle.kts << 'EOF'
+
+android {
+    compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+    }
+}
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+EOF
+          fi
+          if [ -f android/app/build.gradle ]; then
+            cat >> android/app/build.gradle << 'EOF'
+
+android {
+    compileOptions {
+        coreLibraryDesugaringEnabled true
+    }
+}
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
+}
+EOF
+          fi
 
       - name: Install dependencies
         run: flutter pub get
