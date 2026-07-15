@@ -1,0 +1,38 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      # Fills in the native android/ios folders if they're missing,
+      # without touching the existing pubspec.yaml or lib/ code.
+      - name: Ensure platform folders exist
+        run: flutter create --org com.example --project-name studybloom .
+
+      - name: Set minSdkVersion to 26 (Android 8.0)
+        run: |
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 26/' android/app/build.gradle || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 26/' android/app/build.gradle.kts || true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: studybloom-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
